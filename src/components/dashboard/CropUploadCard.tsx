@@ -12,7 +12,6 @@ const CropUploadCard = () => {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      // Validate file type
       if (!file.type.startsWith('image/')) {
         toast.error("Please select a valid image file");
         return;
@@ -24,6 +23,7 @@ const CropUploadCard = () => {
 
   const getLocation = () => {
     setIsGettingLocation(true);
+    console.log("Starting location capture...");
     
     if (!navigator.geolocation) {
       toast.error("Geolocation is not supported by your browser");
@@ -31,37 +31,41 @@ const CropUploadCard = () => {
       return;
     }
 
+    const options = {
+      enableHighAccuracy: true,
+      timeout: 10000, // Increased timeout to 10 seconds
+      maximumAge: 30000 // Allow cached positions up to 30 seconds old
+    };
+
     navigator.geolocation.getCurrentPosition(
       (position) => {
+        console.log("Location captured:", position);
         setLocation(position);
         toast.success("Location captured successfully");
         setIsGettingLocation(false);
       },
       (error) => {
+        console.error("Geolocation error:", error);
         let errorMessage = "Unable to get location";
         
         switch (error.code) {
           case error.PERMISSION_DENIED:
-            errorMessage = "Please allow location access to continue";
+            errorMessage = "Please allow location access in your browser settings and try again";
             break;
           case error.POSITION_UNAVAILABLE:
-            errorMessage = "Location information is unavailable";
+            errorMessage = "Please ensure you have GPS enabled and try again";
             break;
           case error.TIMEOUT:
-            errorMessage = "Location request timed out";
+            errorMessage = "Location request timed out. Please try again";
             break;
           default:
-            errorMessage = "An unknown error occurred";
+            errorMessage = "An unknown error occurred. Please try again";
         }
         
         toast.error(errorMessage);
         setIsGettingLocation(false);
       },
-      {
-        enableHighAccuracy: true,
-        timeout: 5000,
-        maximumAge: 0
-      }
+      options
     );
   };
 
@@ -76,11 +80,11 @@ const CropUploadCard = () => {
       return;
     }
 
-    // TODO: Implement actual upload
     console.log("Uploading image:", image);
     console.log("Location:", {
       latitude: location.coords.latitude,
-      longitude: location.coords.longitude
+      longitude: location.coords.longitude,
+      accuracy: location.coords.accuracy
     });
     
     toast.success("Crop image uploaded successfully!");
