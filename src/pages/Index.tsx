@@ -30,7 +30,9 @@ const Index = () => {
               className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 animate-fade-in"
               style={{ animationDelay: `${index * 200}ms` }}
             >
-              <feature.icon className="h-12 w-12 text-primary mb-4" />
+              <div className="h-12 w-12 text-primary mb-4">
+                <feature.icon />
+              </div>
               <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
               <p className="text-gray-600">{feature.description}</p>
             </div>
@@ -52,7 +54,7 @@ const features = [
         viewBox="0 0 24 24"
         strokeWidth={1.5}
         stroke="currentColor"
-        className="w-6 h-6"
+        className="w-full h-full"
       >
         <path
           strokeLinecap="round"
@@ -72,7 +74,7 @@ const features = [
         viewBox="0 0 24 24"
         strokeWidth={1.5}
         stroke="currentColor"
-        className="w-6 h-6"
+        className="w-full h-full"
       >
         <path
           strokeLinecap="round"
@@ -97,7 +99,7 @@ const features = [
         viewBox="0 0 24 24"
         strokeWidth={1.5}
         stroke="currentColor"
-        className="w-6 h-6"
+        className="w-full h-full"
       >
         <path
           strokeLinecap="round"
