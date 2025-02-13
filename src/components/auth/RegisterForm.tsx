@@ -1,8 +1,10 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const RegisterForm = () => {
   const [formData, setFormData] = useState({
@@ -11,13 +13,40 @@ const RegisterForm = () => {
     phone: "",
     password: "",
   });
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement actual registration
-    toast.success("Registration successful! Please login.");
-    navigate("/login");
+    setIsLoading(true);
+
+    try {
+      // Register the user with Supabase
+      const { data, error } = await supabase.auth.signUp({
+        email: formData.email.trim(),
+        password: formData.password.trim(),
+        options: {
+          data: {
+            name: formData.name.trim(),
+            phone: formData.phone.trim(),
+          }
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data.user) {
+        toast.success("Registration successful! Please login.");
+        navigate("/login");
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      toast.error(error instanceof Error ? error.message : "Failed to register. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -36,6 +65,7 @@ const RegisterForm = () => {
         onChange={handleChange}
         className="bg-white/90 border-green-600"
         required
+        disabled={isLoading}
       />
       <Input
         name="email"
@@ -45,6 +75,7 @@ const RegisterForm = () => {
         onChange={handleChange}
         className="bg-white/90 border-green-600"
         required
+        disabled={isLoading}
       />
       <Input
         name="phone"
@@ -54,6 +85,7 @@ const RegisterForm = () => {
         onChange={handleChange}
         className="bg-white/90 border-green-600"
         required
+        disabled={isLoading}
       />
       <Input
         name="password"
@@ -63,9 +95,15 @@ const RegisterForm = () => {
         onChange={handleChange}
         className="bg-white/90 border-green-600"
         required
+        disabled={isLoading}
+        minLength={6}
       />
-      <Button type="submit" className="w-full bg-primary hover:bg-primary-hover">
-        Register
+      <Button 
+        type="submit" 
+        className="w-full bg-primary hover:bg-primary-hover"
+        disabled={isLoading}
+      >
+        {isLoading ? "Registering..." : "Register"}
       </Button>
     </form>
   );
