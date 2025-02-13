@@ -1,16 +1,31 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Upload, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 
 const CropUploadCard = () => {
   const [image, setImage] = useState<File | null>(null);
   const [location, setLocation] = useState<GeolocationPosition | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const navigate = useNavigate();
+
+  // Check authentication status
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error || !session) {
+        toast.error("Please login to upload images");
+        navigate("/login");
+      }
+    };
+    
+    checkAuth();
+  }, [navigate]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -77,10 +92,18 @@ const CropUploadCard = () => {
     try {
       setIsUploading(true);
       
+      // Check authentication status before upload
+      const { data: { session }, error: authError } = await supabase.auth.getSession();
+      if (authError || !session) {
+        toast.error("Please login to upload images");
+        navigate("/login");
+        return;
+      }
+
       // Upload image to Supabase Storage
       const fileExt = image.name.split('.').pop();
       const fileName = `${crypto.randomUUID()}.${fileExt}`;
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('crop_images')
         .upload(fileName, image);
 
@@ -93,15 +116,11 @@ const CropUploadCard = () => {
         .from('crop_images')
         .getPublicUrl(fileName);
 
-      // Get the current user
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError) throw userError;
-
       // Insert the crop image record
       const { error: insertError } = await supabase
         .from('crop_images')
         .insert({
-          farmer_id: user?.id,
+          farmer_id: session.user.id,
           image_url: publicUrl,
           latitude: location.coords.latitude,
           longitude: location.coords.longitude
