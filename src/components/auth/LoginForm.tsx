@@ -17,23 +17,32 @@ const LoginForm = () => {
     setIsLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password: password.trim()
       });
 
-      if (error) {
-        if (error.message === "Invalid login credentials") {
+      if (signInError) {
+        if (signInError.message === "Invalid login credentials") {
           toast.error("Invalid email or password. Please check your credentials or register if you don't have an account.");
         } else {
-          toast.error(error.message);
+          toast.error(signInError.message);
         }
         return;
       }
 
-      if (data.user) {
-        // Check if email is admin
-        if (data.user.email?.includes('@farmconnect.com')) {
+      if (signInData.user) {
+        // Check if user is an admin
+        const { data: roleData, error: roleError } = await supabase
+          .rpc('is_admin', { user_id: signInData.user.id });
+
+        if (roleError) {
+          console.error('Error checking admin status:', roleError);
+          toast.error("Error verifying user role");
+          return;
+        }
+
+        if (roleData) {
           navigate("/admin");
           toast.success("Welcome back, Admin!");
         } else {
