@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -18,12 +18,17 @@ const LoginForm = () => {
 
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
+        email: email.trim(),
+        password: password.trim()
       });
 
       if (error) {
-        throw error;
+        if (error.message === "Invalid login credentials") {
+          toast.error("Invalid email or password. Please check your credentials or register if you don't have an account.");
+        } else {
+          toast.error(error.message);
+        }
+        return;
       }
 
       if (data.user) {
@@ -38,44 +43,53 @@ const LoginForm = () => {
       }
     } catch (error) {
       console.error('Login error:', error);
-      toast.error(error instanceof Error ? error.message : "Failed to login. Please try again.");
+      toast.error("An unexpected error occurred. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 w-full max-w-sm animate-fade-in">
-      <div className="space-y-2">
-        <Input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="bg-white/90 border-green-600"
-          required
+    <div className="space-y-6 w-full max-w-sm animate-fade-in">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-2">
+          <Input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="bg-white/90 border-green-600"
+            required
+            disabled={isLoading}
+          />
+        </div>
+        <div className="space-y-2">
+          <Input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="bg-white/90 border-green-600"
+            required
+            disabled={isLoading}
+          />
+        </div>
+        <Button 
+          type="submit" 
+          className="w-full bg-primary hover:bg-primary-hover"
           disabled={isLoading}
-        />
+        >
+          {isLoading ? "Logging in..." : "Login"}
+        </Button>
+      </form>
+      
+      <div className="text-center text-sm text-gray-600">
+        Don't have an account?{" "}
+        <Link to="/register" className="text-primary hover:underline">
+          Register here
+        </Link>
       </div>
-      <div className="space-y-2">
-        <Input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="bg-white/90 border-green-600"
-          required
-          disabled={isLoading}
-        />
-      </div>
-      <Button 
-        type="submit" 
-        className="w-full bg-primary hover:bg-primary-hover"
-        disabled={isLoading}
-      >
-        {isLoading ? "Logging in..." : "Login"}
-      </Button>
-    </form>
+    </div>
   );
 };
 
