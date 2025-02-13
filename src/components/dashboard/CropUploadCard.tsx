@@ -2,16 +2,18 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Upload, MapPin } from "lucide-react";
+import { Upload, MapPin, Camera } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 
 const CropUploadCard = () => {
   const [image, setImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [location, setLocation] = useState<GeolocationPosition | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const [isCameraActive, setIsCameraActive] = useState(false);
   const navigate = useNavigate();
 
   // Check authentication status
@@ -35,7 +37,50 @@ const CropUploadCard = () => {
         return;
       }
       setImage(file);
+      // Create preview URL
+      const previewUrl = URL.createObjectURL(file);
+      setImagePreview(previewUrl);
       toast.success("Image selected successfully");
+    }
+  };
+
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      const videoElement = document.createElement('video');
+      videoElement.srcObject = stream;
+      videoElement.play();
+
+      // Take picture after 3 seconds
+      setTimeout(() => {
+        const canvas = document.createElement('canvas');
+        canvas.width = videoElement.videoWidth;
+        canvas.height = videoElement.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(videoElement, 0, 0);
+        
+        // Convert to file
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const file = new File([blob], "camera-capture.jpg", { type: "image/jpeg" });
+            setImage(file);
+            setImagePreview(URL.createObjectURL(blob));
+            toast.success("Photo captured successfully");
+          }
+        }, 'image/jpeg');
+
+        // Stop camera
+        const tracks = stream.getTracks();
+        tracks.forEach(track => track.stop());
+        setIsCameraActive(false);
+      }, 3000);
+
+      setIsCameraActive(true);
+      toast.info("Hold still! Taking photo in 3 seconds...");
+    } catch (error) {
+      console.error('Camera error:', error);
+      toast.error("Failed to access camera. Please check permissions.");
+      setIsCameraActive(false);
     }
   };
 
@@ -130,6 +175,7 @@ const CropUploadCard = () => {
 
       toast.success("Crop image uploaded successfully!");
       setImage(null);
+      setImagePreview(null);
       setLocation(null);
     } catch (error) {
       console.error('Upload error:', error);
@@ -148,23 +194,55 @@ const CropUploadCard = () => {
       
       <div className="space-y-4">
         <div className="border-2 border-dashed border-primary/50 rounded-lg p-4 text-center hover:border-primary transition-colors">
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleImageChange}
-            className="hidden"
-            id="crop-image"
-          />
-          <label
-            htmlFor="crop-image"
-            className="cursor-pointer flex flex-col items-center space-y-2"
-          >
-            <Upload className="h-8 w-8 text-primary" />
-            <span className="text-sm text-gray-600">
-              {image ? image.name : "Click to upload image"}
-            </span>
-          </label>
+          {imagePreview ? (
+            <div className="space-y-2">
+              <img 
+                src={imagePreview} 
+                alt="Selected crop" 
+                className="max-h-48 mx-auto rounded-lg"
+              />
+              <button
+                onClick={() => {
+                  setImage(null);
+                  setImagePreview(null);
+                }}
+                className="text-sm text-red-500 hover:text-red-600"
+              >
+                Remove image
+              </button>
+            </div>
+          ) : (
+            <>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="hidden"
+                id="crop-image"
+              />
+              <label
+                htmlFor="crop-image"
+                className="cursor-pointer flex flex-col items-center space-y-2"
+              >
+                <Upload className="h-8 w-8 text-primary" />
+                <span className="text-sm text-gray-600">
+                  Click to upload image
+                </span>
+              </label>
+            </>
+          )}
         </div>
+
+        <Button
+          type="button"
+          onClick={startCamera}
+          variant="outline"
+          className="w-full"
+          disabled={isCameraActive || isUploading}
+        >
+          <Camera className="mr-2 h-4 w-4" />
+          {isCameraActive ? "Taking photo..." : "Take Photo"}
+        </Button>
 
         <Button
           type="button"

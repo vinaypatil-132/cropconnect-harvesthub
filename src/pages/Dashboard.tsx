@@ -1,4 +1,6 @@
+
 import CropUploadCard from "@/components/dashboard/CropUploadCard";
+import RecentUploads from "@/components/dashboard/RecentUploads";
 
 const Dashboard = () => {
   return (
@@ -9,7 +11,7 @@ const Dashboard = () => {
           <CropUploadCard />
           <div className="space-y-4">
             <h2 className="text-xl font-semibold text-primary">Recent Uploads</h2>
-            <p className="text-gray-600">Your recent crop uploads will appear here.</p>
+            <RecentUploads />
           </div>
         </div>
       </div>
